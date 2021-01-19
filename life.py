@@ -5,14 +5,14 @@ Game of Life
 """
 
 import numpy as np
-from time import sleep
+from copy import deepcopy
 from matplotlib import pyplot as plt
 from matplotlib.animation import FuncAnimation
 plt.style.use("fivethirtyeight")
 
 P = 0
-col = int(input("Width of grid:"))
-row = int(input("Height of grid:"))
+col = int(input("Width of grid:\n"))
+row = int(input("Height of grid:\n"))
 conf = int(input("Which initial configuration would you like to use?\n"
                  "    0. Random\n    1. Shape 1\n    2. Shape 2\n    3. Shape 3\n    4. Shape 4\n    5. Shape 5\n    6. Shape 6\n    7. Shape 7\n"))
 if conf == 0:
@@ -22,10 +22,10 @@ if bc == 1:
     bc = "wrap"
 else:
     bc = "symm"
-
-#initialize arrays "grid" and "copy"
+    
+#initialize arrays "grid" and "grid_next"
 def construct(col, row, conf, P):
-    global grid,copy
+    global grid,grid_next,dt0,dt1
     x,y = (col//2)-1,(row//2)-1
     grid = np.zeros((row,col), dtype=np.int8)    
     if conf == 0:
@@ -44,8 +44,10 @@ def construct(col, row, conf, P):
         grid[y][x],grid[y+1][x],grid[y-1][x],grid[y-1][x+1],grid[y][x-1] = 1,1,1,1,1
     elif conf == 7:
         grid[y][x],grid[y][x-1],grid[y][x+1],grid[y-1][x],grid[y-1][x+1],grid[y-1][x+2] = 1,1,1,1,1,1
-    copy = np.zeros((row,col), dtype=np.int8)
+    grid_next = np.zeros((row,col), dtype=np.int8)
+    dt0, dt1 = [], []
 
+        
 #tally nearest and next-nearest neighbors
 def neighbors(i, j, bc):
     right = col - 1
@@ -108,47 +110,47 @@ def neighbors(i, j, bc):
         k += n
     return k
 
-def density(grid):
-    size = row * col
-    pop = np.sum(grid, dtype=np.int16)
-    return pop/size
-
 #play life
-def life(i):
-    #make changes in copy array
+def life(f):
+    #make changes in grid_next array
     for i in range(row):
         for j in range(col):
             n = neighbors(i,j,bc)
             if grid[i][j] == 0:
                 if n == 3:
-                    copy[i][j] = 1
+                    grid_next[i][j] = 1
                 else:
-                    copy [i][j] = 0
+                    grid_next[i][j] = 0
             else:
                 if n == 2 or n == 3:
-                    copy[i][j] = 1
+                    grid_next[i][j] = 1
                 else:
-                    copy[i][j] = 0
-                    
-    dt0 = density(grid)
-    dt1 = density(copy)
+                    grid_next[i][j] = 0
+    
+    dt0.append((np.mean(grid) * 100))
+    dt1.append((np.mean(grid_next) * 100))
     
     im.set_array(grid)
+    sc.set_data(dt0,dt1)
+    ax1.relim
+    ax1.autoscale_view(True, True, True)
     
-    #deep copy copy array over grid array
-    for i in range(row):
+    for h in range(row):
         for j in range(col):
-            grid[i][j] = copy[i][j]
-    
-    sleep(0.12)
-    return [im]
+            grid[h][j] = grid_next[h][j]
+            
+    return im, sc,
+    #return sc,
 
 def main():    
-    global im
+    global im, sc, ax1
     construct(col, row, conf, P)
-    fig = plt.figure()
-    im = plt.imshow(grid, animated=True)    
-    anim = FuncAnimation(fig, life, frames=200, interval=50, blit=True)
+
+    fig, (ax1, ax2) = plt.subplots(1, 2)
+    im = ax2.imshow(grid, animated=True)
+    sc, = ax1.plot(0, 0, marker='o', ls="")
+
+    anim = FuncAnimation(fig, life, frames=100, interval=120, blit=True)
     plt.show()
 
 if __name__ == "__main__":
